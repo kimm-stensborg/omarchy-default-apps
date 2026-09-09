@@ -91,7 +91,7 @@ omarchy-shell shell summon io.github.kimm-stensborg.mimetypes '{"filter":"pdf"}'
 | `←` / `Tab` | — | back to filetypes |
 | `⏎` | open the app list | set as default |
 | type | filter filetypes | filter applications |
-| `Del` | remove an added filetype | — |
+| `Del` | remove an added filetype (asks first) | — |
 | `Esc` | clear filter, then close | clear filter, then back |
 
 Each pane keeps its own filter, and the selected filetype is tracked by
@@ -139,7 +139,8 @@ A row may carry several MIME types, and they will be set together. A type
 already covered by a built-in group is refused, so two rows can never fight
 over one registration.
 
-`Del` removes an added row from the picker. It deliberately does **not**
+`Del` removes an added row from the picker, after the same confirm the
+Omarchy menu shows before uninstalling an app. It deliberately does **not**
 unset the default that row assigned — hiding a row from a list is not a
 request to change what opens those files. Remove the line from
 `~/.config/mimeapps.list` to do that.

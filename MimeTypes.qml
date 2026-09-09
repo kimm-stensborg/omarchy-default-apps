@@ -49,6 +49,10 @@ Item {
   // and two focus owners in one layer surface race each other.
   property string addInput: ""
   property string addError: ""
+  // Removing a custom row is destructive (the filetype leaves the list), so it
+  // goes through the same confirm the menu uses for uninstalling an app.
+  property bool deleteConfirmOpen: false
+  property var deleteTarget: null
   property string statusMessage: ""
   property bool busy: false
 
@@ -118,6 +122,7 @@ Item {
     root.showAllApps = false
     root.addPromptOpen = false
     root.addError = ""
+    root.closeDeleteConfirm()
     root.statusMessage = ""
     root.refresh()
     if (root.appLibrary) root.appLibrary.refreshIcons()
@@ -130,6 +135,7 @@ Item {
 
   function close() {
     root.addPromptOpen = false
+    root.closeDeleteConfirm()
     root.opened = false
   }
 
@@ -294,15 +300,40 @@ Item {
     Qt.callLater(function() { categoryList.positionViewAtIndex(root.categoryIndex, ListView.Contain) })
   }
 
-  function removeSelectedCustom() {
+  function requestRemoveSelectedCustom() {
     var row = root.selectedCategory
     if (!row || !row.custom) return
+    // Held by key rather than by row object: the list regroups on removal, and
+    // the confirm has to name the filetype the user was actually looking at.
+    root.deleteTarget = { key: row.key, label: row.label }
+    deleteConfirm.selectedIndex = 1
+    root.deleteConfirmOpen = true
+  }
+
+  function closeDeleteConfirm() {
+    root.deleteConfirmOpen = false
+    root.deleteTarget = null
+    deleteConfirm.selectedIndex = 1
+  }
+
+  function cancelRemoveCustom() {
+    root.closeDeleteConfirm()
+    pointerGate.reset()
+    Qt.callLater(function() { keyCatcher.forceActiveFocus() })
+  }
+
+  function confirmRemoveCustom() {
+    var target = root.deleteTarget
+    root.closeDeleteConfirm()
+    if (!target) return
     var wasAt = root.categoryIndex
-    root.customRows = Model.removeCustom(root.customRows, row.key)
+    root.customRows = Model.removeCustom(root.customRows, target.key)
     customFile.setText(Model.serializeCustom(root.customRows))
-    root.statusMessage = "Removed " + row.label
+    root.statusMessage = "Removed " + target.label
     statusTimer.restart()
     root.selectCategoryRow(Math.min(wasAt, root.categoryRows.length - 1))
+    pointerGate.reset()
+    Qt.callLater(function() { keyCatcher.forceActiveFocus() })
   }
 
   // ------------------------------------------------------------- subprocess
@@ -442,10 +473,18 @@ Item {
       Item {
         id: keyCatcher
         anchors.fill: parent
+        // Above the list rows while the confirm is up, so a stray click lands
+        // on the dialog's scrim instead of retargeting the selection under it.
+        z: root.deleteConfirmOpen ? 20 : 0
         focus: true
 
         Keys.priority: Keys.BeforeItem
         Keys.onPressed: function(event) {
+          if (root.deleteConfirmOpen) {
+            if (deleteConfirm.handleKey(event)) event.accepted = true
+            return
+          }
+
           if (root.addPromptOpen) {
             if (event.key === Qt.Key_Escape) {
               root.closeAddPrompt()
@@ -491,7 +530,7 @@ Item {
             if (root.pane === 1) root.leaveAppPane()
             event.accepted = true
           } else if (event.key === Qt.Key_Delete) {
-            if (root.pane === 0) root.removeSelectedCustom()
+            if (root.pane === 0) root.requestRemoveSelectedCustom()
             event.accepted = true
           } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
             root.activate(); event.accepted = true
@@ -503,6 +542,25 @@ Item {
             root.setFilter(root.filterText + event.text)
             event.accepted = true
           }
+        }
+
+        ConfirmDialog {
+          id: deleteConfirm
+
+          anchors.fill: parent
+          opened: root.deleteConfirmOpen
+          z: 10
+          message: "Do you want to remove " + ((root.deleteTarget && root.deleteTarget.label) || "") + "?"
+          confirmText: "Remove"
+          background: root.background
+          foreground: root.foreground
+          scrim: root.scrim
+          selectedBackground: root.selectedBackground
+          selectedText: root.selectedText
+          fontFamily: root.fontFamily
+          cornerRadius: root.cornerRadius
+          onCanceled: root.cancelRemoveCustom()
+          onConfirmed: root.confirmRemoveCustom()
         }
       }
 
