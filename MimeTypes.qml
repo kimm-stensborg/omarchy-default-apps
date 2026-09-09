@@ -25,7 +25,7 @@ Item {
   readonly property string pluginDir: root.manifest && root.manifest.__sourceDir
     ? String(root.manifest.__sourceDir)
     : Quickshell.env("HOME") + "/.config/omarchy/plugins/" + root.pluginId
-  readonly property string pluginId: "io.github.kimm-stensborg.mimetypes"
+  readonly property string pluginId: "io.github.kimm-stensborg.mime-types"
   readonly property string customPath: Quickshell.env("HOME") + "/.config/omarchy/mimetypes.json"
 
   property bool opened: false
@@ -443,7 +443,7 @@ Item {
     visible: root.opened
     anchors { top: true; bottom: true; left: true; right: true }
     color: "transparent"
-    WlrLayershell.namespace: "omarchy-mimetypes"
+    WlrLayershell.namespace: "omarchy-mime-types"
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
     exclusionMode: ExclusionMode.Ignore

@@ -6,7 +6,7 @@ Right pane: the apps that can take it.
 
 ![Default Applications](preview.png)
 
-- **Plugin ID:** `io.github.kimm-stensborg.mimetypes`
+- **Plugin ID:** `io.github.kimm-stensborg.mime-types`
 - **Kind:** `overlay`
 - **License:** MIT
 - **Requires:** Omarchy 4 (Quattro) with `omarchy-shell`
@@ -26,19 +26,19 @@ Nothing is downloaded or installed at runtime.
 ## Install
 
 ```bash
-omarchy plugin add https://github.com/kimm-stensborg/omarchy-plugin-mimetypes.git
-omarchy plugin enable io.github.kimm-stensborg.mimetypes
+omarchy plugin add https://github.com/kimm-stensborg/omarchy-mime-types.git
+omarchy plugin enable io.github.kimm-stensborg.mime-types
 ```
 
 `omarchy plugin add` clones into
-`~/.config/omarchy/plugins/io.github.kimm-stensborg.mimetypes/` and leaves the
+`~/.config/omarchy/plugins/io.github.kimm-stensborg.mime-types/` and leaves the
 plugin disabled so the code can be reviewed before it runs. Plugins execute
 unsandboxed inside `omarchy-shell`.
 
 Then open it:
 
 ```bash
-omarchy-shell shell summon io.github.kimm-stensborg.mimetypes '{}'
+omarchy-shell shell summon io.github.kimm-stensborg.mime-types '{}'
 ```
 
 Add a menu entry by putting this in
@@ -51,7 +51,7 @@ which puts it under **Setup → Defaults → Filetypes**:
   "label": "Filetypes",
   "description": "Choose which application opens each filetype",
   "aliases": ["mimetypes", "default-apps", "associations"],
-  "action": "omarchy-shell shell summon io.github.kimm-stensborg.mimetypes '{}'"
+  "action": "omarchy-shell shell summon io.github.kimm-stensborg.mime-types '{}'"
 },
 ```
 
@@ -60,7 +60,7 @@ Or bind a key in `~/.config/hypr/bindings.lua`.
 ## Remove
 
 ```bash
-omarchy plugin remove io.github.kimm-stensborg.mimetypes
+omarchy plugin remove io.github.kimm-stensborg.mime-types
 ```
 
 That deletes the plugin directory. Two things it leaves behind on purpose,
@@ -78,8 +78,8 @@ Also remove the `setup.default.filetypes` entry from
 ## Usage
 
 ```bash
-omarchy-shell shell summon io.github.kimm-stensborg.mimetypes '{}'
-omarchy-shell shell summon io.github.kimm-stensborg.mimetypes '{"filter":"pdf"}'   # open on a group
+omarchy-shell shell summon io.github.kimm-stensborg.mime-types '{}'
+omarchy-shell shell summon io.github.kimm-stensborg.mime-types '{"filter":"pdf"}'   # open on a group
 ```
 
 ## Keys

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Backend for the io.github.kimm-stensborg.mimetypes shell plugin.
+"""Backend for the io.github.kimm-stensborg.mime-types shell plugin.
 
 Three subcommands, all speaking JSON on stdout:
 
