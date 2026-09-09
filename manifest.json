@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "id": "io.github.kimm-stensborg.mime-types",
+  "id": "io.github.kimm-stensborg.default-apps",
   "name": "Default Applications",
   "version": "1.0.0",
   "author": "Kimm Stensborg",
@@ -11,6 +11,6 @@
   ],
   "keepLoaded": true,
   "entryPoints": {
-    "overlay": "MimeTypes.qml"
+    "overlay": "DefaultApps.qml"
   }
 }

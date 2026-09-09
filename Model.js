@@ -67,7 +67,7 @@ function isPlainObject(value) {
 
 // ---------------------------------------------------------------- custom rows
 
-// User-added filetypes live in ~/.config/omarchy/mimetypes.json so they can be
+// User-added filetypes live in ~/.config/omarchy/default-apps.json so they can be
 // hand-edited and survive a plugin reinstall.
 function parseCustom(rawText) {
   var parsed = null

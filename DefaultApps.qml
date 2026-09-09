@@ -25,8 +25,8 @@ Item {
   readonly property string pluginDir: root.manifest && root.manifest.__sourceDir
     ? String(root.manifest.__sourceDir)
     : Quickshell.env("HOME") + "/.config/omarchy/plugins/" + root.pluginId
-  readonly property string pluginId: "io.github.kimm-stensborg.mime-types"
-  readonly property string customPath: Quickshell.env("HOME") + "/.config/omarchy/mimetypes.json"
+  readonly property string pluginId: "io.github.kimm-stensborg.default-apps"
+  readonly property string customPath: Quickshell.env("HOME") + "/.config/omarchy/default-apps.json"
 
   property bool opened: false
   // 0 = filetype list, 1 = app list. Each pane keeps its own filter: sharing
@@ -443,7 +443,7 @@ Item {
     visible: root.opened
     anchors { top: true; bottom: true; left: true; right: true }
     color: "transparent"
-    WlrLayershell.namespace: "omarchy-mime-types"
+    WlrLayershell.namespace: "omarchy-default-apps"
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
     exclusionMode: ExclusionMode.Ignore

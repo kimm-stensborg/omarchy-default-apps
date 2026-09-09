@@ -6,7 +6,7 @@ Right pane: the apps that can take it.
 
 ![Default Applications](preview.png)
 
-- **Plugin ID:** `io.github.kimm-stensborg.mime-types`
+- **Plugin ID:** `io.github.kimm-stensborg.default-apps`
 - **Kind:** `overlay`
 - **License:** MIT
 - **Requires:** Omarchy 4 (Quattro) with `omarchy-shell`
@@ -26,19 +26,19 @@ Nothing is downloaded or installed at runtime.
 ## Install
 
 ```bash
-omarchy plugin add https://github.com/kimm-stensborg/omarchy-mime-types.git
-omarchy plugin enable io.github.kimm-stensborg.mime-types
+omarchy plugin add https://github.com/kimm-stensborg/omarchy-default-apps.git
+omarchy plugin enable io.github.kimm-stensborg.default-apps
 ```
 
 `omarchy plugin add` clones into
-`~/.config/omarchy/plugins/io.github.kimm-stensborg.mime-types/` and leaves the
+`~/.config/omarchy/plugins/io.github.kimm-stensborg.default-apps/` and leaves the
 plugin disabled so the code can be reviewed before it runs. Plugins execute
 unsandboxed inside `omarchy-shell`.
 
 Then open it:
 
 ```bash
-omarchy-shell shell summon io.github.kimm-stensborg.mime-types '{}'
+omarchy-shell shell summon io.github.kimm-stensborg.default-apps '{}'
 ```
 
 Add a menu entry by putting this in
@@ -51,7 +51,7 @@ which puts it under **Setup → Defaults → Filetypes**:
   "label": "Filetypes",
   "description": "Choose which application opens each filetype",
   "aliases": ["mimetypes", "default-apps", "associations"],
-  "action": "omarchy-shell shell summon io.github.kimm-stensborg.mime-types '{}'"
+  "action": "omarchy-shell shell summon io.github.kimm-stensborg.default-apps '{}'"
 },
 ```
 
@@ -60,7 +60,7 @@ Or bind a key in `~/.config/hypr/bindings.lua`.
 ## Remove
 
 ```bash
-omarchy plugin remove io.github.kimm-stensborg.mime-types
+omarchy plugin remove io.github.kimm-stensborg.default-apps
 ```
 
 That deletes the plugin directory. Two things it leaves behind on purpose,
@@ -69,7 +69,7 @@ because both are your data rather than the plugin's:
 - `~/.config/mimeapps.list` — the assignments themselves. They are standard
   XDG defaults that every other tool reads, so removing the plugin does not
   change what opens your files. Delete individual lines to undo them.
-- `~/.config/omarchy/mimetypes.json` — any filetypes you added by hand.
+- `~/.config/omarchy/default-apps.json` — any filetypes you added by hand.
   Safe to delete.
 
 Also remove the `setup.default.filetypes` entry from
@@ -78,8 +78,8 @@ Also remove the `setup.default.filetypes` entry from
 ## Usage
 
 ```bash
-omarchy-shell shell summon io.github.kimm-stensborg.mime-types '{}'
-omarchy-shell shell summon io.github.kimm-stensborg.mime-types '{"filter":"pdf"}'   # open on a group
+omarchy-shell shell summon io.github.kimm-stensborg.default-apps '{}'
+omarchy-shell shell summon io.github.kimm-stensborg.default-apps '{"filter":"pdf"}'   # open on a group
 ```
 
 ## Keys
@@ -125,7 +125,7 @@ gets picked.
 **Add a filetype…** at the end of the list accepts an extension (`.kra`) or a
 MIME type (`application/x-krita`). Extensions resolve against the
 shared-mime-info glob database. Added rows live in
-`~/.config/omarchy/mimetypes.json`, which is meant to be hand-editable:
+`~/.config/omarchy/default-apps.json`, which is meant to be hand-editable:
 
 ```json
 {
@@ -149,7 +149,7 @@ request to change what opens those files. Remove the line from
 
 | Path | What |
 |------|------|
-| `MimeTypes.qml` | the overlay: panes, keys, theming |
+| `DefaultApps.qml` | the overlay: panes, keys, theming |
 | `Model.js` | filetype groups, default resolution, search, sorting |
 | `scan.py` | `scan` / `set` / `resolve` — the only code that touches the system |
 
