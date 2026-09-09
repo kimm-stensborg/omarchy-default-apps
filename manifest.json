@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "io.github.kimm-stensborg.mimetypes",
+  "name": "Default Applications",
+  "version": "1.0.0",
+  "author": "Kimm Stensborg",
+  "license": "MIT",
+  "description": "Pick which application opens each filetype",
+  "kinds": [
+    "overlay"
+  ],
+  "keepLoaded": true,
+  "entryPoints": {
+    "overlay": "MimeTypes.qml"
+  }
+}
