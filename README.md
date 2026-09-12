@@ -55,7 +55,15 @@ which puts it under **Setup → Defaults → Filetypes**:
 },
 ```
 
-Or bind a key in `~/.config/hypr/bindings.lua`.
+Or bind a key in `~/.config/hypr/bindings.lua` (it reloads on save). `toggle`
+opens the overlay, or closes it if it is already open:
+
+```lua
+o.bind("SUPER + CTRL + M", "Default applications", "omarchy-shell shell toggle io.github.kimm-stensborg.default-apps '{}'")
+```
+
+`SUPER + CTRL + M` is unbound on a stock install. If you pick a key that is
+already taken, put `hl.unbind("<key>")` on the line before it.
 
 ## Remove
 
