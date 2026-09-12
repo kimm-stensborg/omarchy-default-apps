@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """Backend for the io.github.kimm-stensborg.default-apps shell plugin.
 
-Three subcommands, all speaking JSON on stdout:
+Four subcommands, all speaking JSON on stdout:
 
   scan             every installed desktop app + the current default per MIME type
   set APP MIME...  point one or more MIME types at a .desktop id
   resolve INPUT    turn ".md" / "md" / "text/markdown" into a MIME type
+  menu             add the plugin's row to the Omarchy menu, once
 
 Kept deliberately dependency-free: the shell calls this as a plain
 subprocess and parses the single JSON object it prints.
@@ -13,8 +14,11 @@ subprocess and parses the single JSON object it prints.
 
 import json
 import os
+import re
+import shutil
 import subprocess
 import sys
+import time
 
 HOME = os.path.expanduser("~")
 
@@ -320,9 +324,155 @@ def cmd_resolve(argv):
     return 0
 
 
+PLUGIN_ID = "io.github.kimm-stensborg.default-apps"
+MENU_ID = "setup.default.filetypes"
+# The same marker shape the Plugin Manager's install.sh puts above its row, so
+# every row a plugin of ours wrote is labelled the same way.
+MENU_MARKER = "  // ── Default Applications (%s)" % PLUGIN_ID
+MENU_ENTRY = {
+    "icon": "󰈔",
+    "label": "Filetypes",
+    "description": "Choose which application opens each filetype",
+    "aliases": ["mimetypes", "default-apps", "associations"],
+    # Hides the row once `omarchy plugin remove` has deleted the folder, so a
+    # removed plugin never leaves behind a row that opens nothing.
+    "when": "[[ -d ~/.config/omarchy/plugins/%s ]]" % PLUGIN_ID,
+    "action": "omarchy-shell shell summon %s '{}'" % PLUGIN_ID,
+}
+LINE_COMMENT = re.compile(r"^\s*//[^\n]*(\n|$)", re.M)
+
+
+def menu_path():
+    # The exact path Omarchy's Menu.qml reads; it does not honour XDG_CONFIG_HOME.
+    return os.path.join(HOME, ".config", "omarchy", "extensions", "omarchy-menu.jsonc")
+
+
+def menu_state_path():
+    return os.path.join(
+        _env_dir("XDG_STATE_HOME", HOME + "/.local/state"), "omarchy-default-apps", "menu-entry"
+    )
+
+
+def parse_menu(text):
+    """The menu file as Omarchy's MenuModel.js reads it, or None where it reads
+    nothing. Mirrors its stripJsonc exactly: whole-line // comments and
+    trailing commas go, and no other JSONC is understood."""
+    stripped = LINE_COMMENT.sub("", text)
+    stripped = re.sub(r",(\s*[}\]])", r"\1", stripped)
+    if not stripped.strip():
+        return {}
+    try:
+        parsed = json.loads(stripped)
+    except ValueError:
+        return None
+    return parsed if isinstance(parsed, dict) else None
+
+
+def _significant(line):
+    stripped = line.strip()
+    return bool(stripped) and not stripped.startswith("//")
+
+
+def insert_menu_row(text, row):
+    """text with MENU_MARKER and row as the last entries of its top-level
+    object, or None when its last significant line does not close one."""
+    lines = text.split("\n")
+    close = next((i for i in reversed(range(len(lines))) if _significant(lines[i])), None)
+    if close is None or not lines[close].rstrip().endswith("}"):
+        return None
+    last = lines[close].rstrip()
+    head = lines[:close]
+    # A one-line "{}", or an entry sharing the closing brace's line, keeps
+    # what comes before the brace.
+    if last[:-1].strip():
+        head.append(last[:-1].rstrip())
+    prev = next((i for i in reversed(range(len(head))) if _significant(head[i])), None)
+    if prev is not None and not head[prev].rstrip().endswith((",", "{")):
+        head[prev] = head[prev].rstrip() + ","
+    if head and _significant(head[-1]) and not head[-1].rstrip().endswith("{"):
+        head.append("")
+    return "\n".join(head + [MENU_MARKER, row, "}"] + lines[close + 1:])
+
+
+def remember_menu_row(state):
+    """Note that the row has been in the menu, so deleting it is final."""
+    if os.path.exists(state):
+        return
+    os.makedirs(os.path.dirname(state), exist_ok=True)
+    with open(state, "w", encoding="utf-8") as fh:
+        fh.write(time.strftime("%Y-%m-%dT%H:%M:%S%z") + "\n")
+
+
+def cmd_menu():
+    """Put the plugin under Setup → Defaults, once, on its first start.
+
+    The file is left alone when a row for the plugin is already there, when
+    an earlier run added one that has since been deleted, and whenever the
+    edit would change anything besides adding the row."""
+    path = menu_path()
+    state = menu_state_path()
+
+    def reply(ok, status, error=""):
+        json.dump({"ok": ok, "status": status, "path": path, "error": error}, sys.stdout)
+        print()
+        return 0 if ok else 1
+
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            text = fh.read()
+        existed = True
+    except FileNotFoundError:
+        text, existed = "", False
+    except (OSError, UnicodeDecodeError) as err:
+        return reply(False, "unreadable", str(err))
+
+    current = parse_menu(text)
+    if current is None:
+        return reply(False, "unreadable", "the Omarchy menu cannot parse %s" % path)
+    if MENU_ID in current or PLUGIN_ID in text:
+        try:
+            remember_menu_row(state)
+        except OSError:
+            pass
+        return reply(True, "present")
+    if os.path.exists(state):
+        return reply(True, "declined")
+    if isinstance(current.get("items"), dict):
+        return reply(False, "unsupported", 'rows in %s are nested under "items"' % path)
+
+    if not LINE_COMMENT.sub("", text).strip():
+        text += ("" if not text or text.endswith("\n") else "\n") + "{\n}\n"
+    row = "  %s:%s," % (
+        json.dumps(MENU_ID),
+        json.dumps(MENU_ENTRY, ensure_ascii=False, separators=(",", ":")),
+    )
+    updated = insert_menu_row(text, row)
+    # The one guarantee that matters: the menu reads everything it read
+    # before, plus this row, and nothing else changed.
+    if updated is None or parse_menu(updated) != dict(current, **{MENU_ID: MENU_ENTRY}):
+        return reply(False, "unsupported", "cannot add a row to %s without changing the rest" % path)
+
+    # Write to the real file behind a symlink rather than replacing the link,
+    # so a dotfile manager's link survives.
+    target = os.path.realpath(path)
+    try:
+        os.makedirs(os.path.dirname(target), exist_ok=True)
+        tmp = target + ".default-apps.tmp"
+        with open(tmp, "w", encoding="utf-8") as fh:
+            fh.write(updated)
+        if existed:
+            shutil.copymode(target, tmp)
+            shutil.copy2(target, "%s.bak.%d" % (target, int(time.time())))
+        os.replace(tmp, target)
+        remember_menu_row(state)
+    except OSError as err:
+        return reply(False, "error", str(err))
+    return reply(True, "added")
+
+
 def main(argv):
     if not argv:
-        print("usage: scan.py {scan|set|resolve} ...", file=sys.stderr)
+        print("usage: scan.py {scan|set|resolve|menu} ...", file=sys.stderr)
         return 2
     command, rest = argv[0], argv[1:]
     if command == "scan":
@@ -332,6 +482,8 @@ def main(argv):
         return cmd_set(rest)
     if command == "resolve":
         return cmd_resolve(rest)
+    if command == "menu":
+        return cmd_menu()
     print("unknown command: %s" % command, file=sys.stderr)
     return 2
 

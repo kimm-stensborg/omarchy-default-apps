@@ -146,6 +146,12 @@ Item {
 
   function ping() { return "ok" }
 
+  // keepLoaded mounts the plugin when the shell starts, so this is the first
+  // start after enabling: the moment to put it under Setup → Defaults, once.
+  // Deferred a tick so the host has injected `manifest` and pluginDir points
+  // at the real install.
+  Component.onCompleted: Qt.callLater(function() { menuProc.running = true })
+
   // Seed and heal the selection: on open there is no key yet, and a filter
   // edit can exclude the selected group. Never re-seed from the app pane —
   // the whole point of the key is that the target cannot move once chosen.
@@ -411,6 +417,30 @@ Item {
         try { payload = JSON.parse(text) } catch (e) { payload = null }
         root.handleResolved(payload)
       }
+    }
+  }
+
+  // scan.py decides whether adding the menu row is wanted and safe; this only
+  // runs it and says so when a row went in.
+  Process {
+    id: menuProc
+    command: ["python3", root.pluginDir + "/scan.py", "menu"]
+    stdout: StdioCollector {
+      waitForEnd: true
+      onStreamFinished: {
+        var payload = null
+        try { payload = JSON.parse(text) } catch (e) { payload = null }
+        if (payload && payload.status === "added") {
+          Quickshell.execDetached(["notify-send", "-a", "Default Applications", "Default Applications",
+                                   "Added to the Omarchy menu under Setup → Defaults → Filetypes"])
+        } else if (!payload || payload.ok !== true) {
+          console.warn(root.pluginId + " menu:", payload && payload.error ? payload.error : text.trim())
+        }
+      }
+    }
+    stderr: StdioCollector {
+      waitForEnd: true
+      onStreamFinished: if (text.trim().length > 0) console.warn(root.pluginId + " menu:", text.trim())
     }
   }
 

@@ -41,19 +41,26 @@ Then open it:
 omarchy-shell shell summon io.github.kimm-stensborg.default-apps '{}'
 ```
 
-Add a menu entry by putting this in
-`~/.config/omarchy/extensions/omarchy-menu.jsonc` (it hot-reloads on save),
-which puts it under **Setup → Defaults → Filetypes**:
+Enabling it also puts it in the Omarchy menu, under
+**Setup → Defaults → Filetypes**. The first time the shell loads the plugin,
+it adds this line to `~/.config/omarchy/extensions/omarchy-menu.jsonc` and
+sends a notification saying so:
 
 ```jsonc
-"setup.default.filetypes": {
-  "icon": "󰈔",
-  "label": "Filetypes",
-  "description": "Choose which application opens each filetype",
-  "aliases": ["mimetypes", "default-apps", "associations"],
-  "action": "omarchy-shell shell summon io.github.kimm-stensborg.default-apps '{}'"
-},
+"setup.default.filetypes":{"icon":"󰈔","label":"Filetypes","description":"Choose which application opens each filetype","aliases":["mimetypes","default-apps","associations"],"when":"[[ -d ~/.config/omarchy/plugins/io.github.kimm-stensborg.default-apps ]]","action":"omarchy-shell shell summon io.github.kimm-stensborg.default-apps '{}'"},
 ```
+
+It does that once:
+
+- If the menu already has a row that opens the plugin, nothing is added.
+- If you delete the row, it stays deleted.
+- The `when` guard hides the row once the plugin is removed, so the menu never
+  offers something that is gone.
+- If the menu file cannot be edited safely (see
+  [What it writes](#what-it-writes)), it is left alone. Paste the line in
+  yourself instead, before the file's closing `}`. Keep it on one line: that
+  is how the [Plugin Manager](https://github.com/kimm-stensborg/omarchy-plugin-manager)
+  finds it.
 
 Or bind a key in `~/.config/hypr/bindings.lua` (it reloads on save). `toggle`
 opens the overlay, or closes it if it is already open:
@@ -71,17 +78,19 @@ already taken, put `hl.unbind("<key>")` on the line before it.
 omarchy plugin remove io.github.kimm-stensborg.default-apps
 ```
 
-That deletes the plugin directory. Two things it leaves behind on purpose,
-because both are your data rather than the plugin's:
+That deletes the plugin directory. It leaves these behind on purpose:
 
 - `~/.config/mimeapps.list` — the assignments themselves. They are standard
   XDG defaults that every other tool reads, so removing the plugin does not
   change what opens your files. Delete individual lines to undo them.
 - `~/.config/omarchy/default-apps.json` — any filetypes you added by hand.
   Safe to delete.
-
-Also remove the `setup.default.filetypes` entry from
-`~/.config/omarchy/extensions/omarchy-menu.jsonc` if you added one.
+- the `setup.default.filetypes` line in
+  `~/.config/omarchy/extensions/omarchy-menu.jsonc`. Its `when` guard hides it
+  once the plugin is gone, and a reinstall shows it again. Delete it to tidy up.
+- `~/.local/state/omarchy-default-apps/menu-entry` — the note that the menu
+  row was added once. Delete it as well if you want a reinstall to add the
+  row again.
 
 ## Usage
 
@@ -109,8 +118,18 @@ assignment at whatever moved into that row.
 ## What it writes
 
 Assignments go through `xdg-mime default`, which writes
-`~/.config/mimeapps.list`. Nothing else on the system is touched, and any
-other tool that reads that file sees the same result.
+`~/.config/mimeapps.list`, and any other tool that reads that file sees the
+same result.
+
+The only other write is the menu row, once (see [Install](#install)). It
+goes into `~/.config/omarchy/extensions/omarchy-menu.jsonc` as the last entry,
+under a `// ── Default Applications (…)` comment, and nothing else in the
+file is changed. Before writing, the plugin reads the new file the way the
+Omarchy menu does. It must hold every row the old one held, plus this one,
+or nothing is written. The old file is kept as
+`omarchy-menu.jsonc.bak.<timestamp>`. That the row was added is recorded in
+`~/.local/state/omarchy-default-apps/menu-entry` (under `$XDG_STATE_HOME` if
+set). Nothing else on the system is touched.
 
 A group sets every MIME type it lists in one action ("Images" covers PNG,
 JPEG, WebP and the rest), so the subtitle can report a state the group as a
@@ -159,7 +178,7 @@ request to change what opens those files. Remove the line from
 |------|------|
 | `DefaultApps.qml` | the overlay: panes, keys, theming |
 | `Model.js` | filetype groups, default resolution, search, sorting |
-| `scan.py` | `scan` / `set` / `resolve` — the only code that touches the system |
+| `scan.py` | `scan` / `set` / `resolve` / `menu` — the only code that touches the system |
 
 `scan.py` reads the desktop-entry and mimeapps.list search paths itself
 rather than shelling out per MIME type, so a full scan of ~100 apps costs
